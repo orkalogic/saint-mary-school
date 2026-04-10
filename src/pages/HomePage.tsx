@@ -1,11 +1,10 @@
 // @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from "react";
+import { api } from "../lib/api";
 
 // ═══════════════════════════════════════════════════════════════
 // ERITREAN SAINT MARY ORTHODOX CHURCH — HOMEPAGE
-// Design: Warm, reverent, content-first. Inspired by Eritrean
-// Orthodox art — rich earth tones, geometric patterns from
-// traditional basket weaving (mesob), gold iconography.
+// ALL content is now fetched from the CMS API
 // ═══════════════════════════════════════════════════════════════
 
 const C = {
@@ -69,65 +68,23 @@ function MesobPattern({ size = 200, opacity = 0.06 }) {
   );
 }
 
-// ── Event carousel slides (placeholder images as painted scenes) ──
-const carouselSlides = [
-  {
-    id: 1,
-    gradient: `linear-gradient(135deg, #2C1810 0%, #4A2C1A 30%, #6B3A20 60%, #3D2415 100%)`,
-    title: "Kidus Yohannes Celebration",
-    subtitle: "A blessed gathering of our community",
-    accent: C.terracotta,
-  },
-  {
-    id: 2,
-    gradient: `linear-gradient(135deg, ${C.navyDeep} 0%, #1E3456 40%, #2A4570 70%, ${C.navy} 100%)`,
-    title: "Timket — Feast of Epiphany",
-    subtitle: "Celebrating the baptism of our Lord",
-    accent: "#4A90D9",
-  },
-  {
-    id: 3,
-    gradient: `linear-gradient(135deg, #1A2E1A 0%, #2D4A2D 40%, #3D5C3D 70%, #1A2E1A 100%)`,
-    title: "Palm Sunday Procession",
-    subtitle: "Hosanna in the highest",
-    accent: C.sage,
-  },
-  {
-    id: 4,
-    gradient: `linear-gradient(135deg, #3D1F3D 0%, #5C2E5C 40%, #4A2040 70%, #2E152E 100%)`,
-    title: "Feast of Saint Mary",
-    subtitle: "Honoring the Holy Mother of God",
-    accent: "#9B6B9B",
-  },
-];
-
-const versesOfDay = [
-  { text: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.", ref: "Joshua 1:9" },
-  { text: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.", ref: "Proverbs 3:5-6" },
-  { text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.", ref: "Jeremiah 29:11" },
-];
-
-const blogPosts = [
-  { id: 1, category: "Teaching", title: "Understanding the Liturgy of Saint Mark", excerpt: "A deep exploration of the ancient Alexandrian liturgical tradition used in our church services.", date: "Mar 24, 2026", readTime: "8 min" },
-  { id: 2, category: "Community", title: "Youth Fellowship Retreat Recap", excerpt: "Highlights from our weekend retreat at Lake Jordan — baptismal reflections and community building.", date: "Mar 19, 2026", readTime: "5 min" },
-  { id: 3, category: "Spirituality", title: "Preparing for Hudade — The Great Fast", excerpt: "Practical guidance on observing the 55-day Lenten fast with faithfulness and spiritual discipline.", date: "Mar 14, 2026", readTime: "6 min" },
-];
-
-const upcomingEvents = [
-  { date: "Apr 5", day: "Sun", title: "Palm Sunday Service & School Program", time: "8:00 AM", location: "Main Sanctuary" },
-  { date: "Apr 10", day: "Fri", title: "Good Friday — Burial of Christ", time: "6:00 PM", location: "Main Sanctuary" },
-  { date: "Apr 12", day: "Sun", title: "Easter / Fasika Celebration", time: "12:00 AM", location: "Church Grounds" },
-  { date: "Apr 19", day: "Sun", title: "Parent-Teacher Conference", time: "11:30 AM", location: "Fellowship Hall" },
-];
-
-const fastingSchedule = [
-  { name: "Hudade (Great Lent)", period: "Feb 23 – Apr 12", status: "active", days: 55 },
-  { name: "Fast of the Apostles", period: "Jun 15 – Jul 11", status: "upcoming", days: 27 },
-  { name: "Fast of Saint Mary", period: "Aug 1 – Aug 15", status: "upcoming", days: 15 },
-  { name: "Advent (Tsome Gena)", period: "Nov 15 – Jan 6", status: "upcoming", days: 43 },
+// Default gradient for events without images
+const defaultGradients = [
+  `linear-gradient(135deg, #2C1810 0%, #4A2C1A 30%, #6B3A20 60%, #3D2415 100%)`,
+  `linear-gradient(135deg, #0E1A30 0%, #1E3456 40%, #2A4570 70%, #1B2D4F 100%)`,
+  `linear-gradient(135deg, #1A2E1A 0%, #2D4A2D 40%, #3D5C3D 70%, #1A2E1A 100%)`,
+  `linear-gradient(135deg, #3D1F3D 0%, #5C2E5C 40%, #4A2040 70%, #2E152E 100%)`,
+  `linear-gradient(135deg, #4A3010 0%, #6B4A20 40%, #5C3A18 70%, #3D2410 100%)`,
 ];
 
 export default function HomePage() {
+  // ── All CMS data ──
+  const [events, setEvents] = useState([]);
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [fastingSeasons, setFastingSeasons] = useState([]);
+  const [verses, setVerses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [verseIdx, setVerseIdx] = useState(0);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -139,23 +96,55 @@ export default function HomePage() {
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef(null);
 
+  // Fetch all CMS data
+  useEffect(() => {
+    Promise.all([
+      api.cms.events.getAll().catch(() => []),
+      api.cms.blog.getAll().catch(() => []),
+      api.cms.fasting.getAll().catch(() => []),
+      api.cms.verses.getAll().catch(() => []),
+    ]).then(([e, b, f, v]) => {
+      setEvents(e || []);
+      setBlogPosts(b || []);
+      setFastingSeasons(f || []);
+      setVerses(v || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
   useEffect(() => {
     const h = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", h, { passive: true });
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  // Auto-advance carousel
+  // Auto-advance carousel (top 5 events)
+  const slides = (events || []).slice(0, 5).map((ev, i) => ({
+    id: ev.id,
+    title: ev.title,
+    subtitle: ev.description?.substring(0, 80) || "",
+    image: ev.cover_image || null,
+    date: ev.date,
+    location: ev.location,
+  }));
+
   useEffect(() => {
-    const t = setInterval(() => setCurrentSlide(p => (p + 1) % carouselSlides.length), 6000);
+    if (slides.length === 0) return;
+    const t = setInterval(() => setCurrentSlide(p => (p + 1) % slides.length), 6000);
     return () => clearInterval(t);
-  }, []);
+  }, [slides.length]);
 
   // Rotate verse
+  const verseList = verses.length > 0 ? verses : [
+    { text: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.", reference: "Joshua 1:9" },
+    { text: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.", reference: "Proverbs 3:5-6" },
+    { text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.", reference: "Jeremiah 29:11" },
+  ];
+
   useEffect(() => {
-    const t = setInterval(() => setVerseIdx(p => (p + 1) % versesOfDay.length), 12000);
+    const t = setInterval(() => setVerseIdx(p => (p + 1) % verseList.length), 12000);
     return () => clearInterval(t);
-  }, []);
+  }, [verseList.length]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -166,7 +155,6 @@ export default function HomePage() {
     const userMsg = chatInput.trim();
     setChatMessages(p => [...p, { role: "user", text: userMsg }]);
     setChatInput("");
-    // Simulate response
     setTimeout(() => {
       setChatMessages(p => [...p, {
         role: "assistant",
@@ -176,6 +164,7 @@ export default function HomePage() {
   }, [chatInput]);
 
   const navBg = Math.min(scrollY / 150, 1);
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.parchment, color: C.textMuted }}>Loading...</div>;
 
   return (
     <div style={{ fontFamily: "'Cormorant Garamond', 'Georgia', serif", color: C.text, background: C.parchment, minHeight: "100vh" }}>
@@ -371,10 +360,10 @@ export default function HomePage() {
 
       {/* ══════════════ HERO CAROUSEL ══════════════ */}
       <section style={{ position: "relative", height: "85vh", minHeight: 520, maxHeight: 780, overflow: "hidden" }}>
-        {carouselSlides.map((slide, i) => (
+        {slides.map((slide, i) => (
           <div key={slide.id} style={{
             position: "absolute", inset: 0,
-            background: slide.gradient,
+            background: slide.image ? `url(${slide.image}) center/cover` : defaultGradients[i % defaultGradients.length],
             opacity: currentSlide === i ? 1 : 0,
             transition: "opacity 1.2s ease-in-out",
             zIndex: currentSlide === i ? 1 : 0,
@@ -400,7 +389,7 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {carouselSlides.map((slide, i) => (
+              {slides.map((slide, i) => (
                 currentSlide === i && (
                   <div key={slide.id} style={{ animation: "fadeUp 0.8s ease-out" }}>
                     <h1 style={{
@@ -430,7 +419,7 @@ export default function HomePage() {
 
         {/* Carousel dots */}
         <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", zIndex: 3, display: "flex", gap: 10 }}>
-          {carouselSlides.map((_, i) => (
+          {slides.map((_, i) => (
             <button key={i} className="carousel-dot" onClick={() => setCurrentSlide(i)} style={{
               background: currentSlide === i ? C.goldLight : "rgba(255,255,255,0.3)",
               width: currentSlide === i ? 28 : 8,
@@ -450,7 +439,7 @@ export default function HomePage() {
           <div style={{ padding: "36px 24px", position: "relative" }}>
             <span className="sans section-label" style={{ fontSize: 10 }}>Verse of the Day</span>
             <div style={{ position: "relative", minHeight: 90 }}>
-              {versesOfDay.map((v, i) => (
+              {verseList.map((v, i) => (
                 verseIdx === i && (
                   <div key={i} style={{ animation: "fadeUp 0.6s ease-out" }}>
                     <p style={{ fontSize: "clamp(18px, 2.8vw, 24px)", fontWeight: 400, fontStyle: "italic", color: C.earth, lineHeight: 1.65, marginBottom: 14 }}>
@@ -462,7 +451,7 @@ export default function HomePage() {
               ))}
             </div>
             <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 20 }}>
-              {versesOfDay.map((_, i) => (
+              {verseList.map((_, i) => (
                 <button key={i} onClick={() => setVerseIdx(i)} style={{
                   width: 6, height: 6, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
                   background: verseIdx === i ? C.gold : C.cream, transition: "all 0.3s",
@@ -489,7 +478,7 @@ export default function HomePage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-            {upcomingEvents.map((ev, i) => (
+            {events.map((ev, i) => (
               <div key={i} className="card" style={{ padding: 24, cursor: "pointer" }}>
                 <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                   <div style={{
@@ -497,16 +486,16 @@ export default function HomePage() {
                     background: `linear-gradient(135deg, ${C.navy}, ${C.navyDeep})`,
                     borderRadius: 10, color: "white",
                   }}>
-                    <div className="sans" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", opacity: 0.7 }}>{ev.day}</div>
-                    <div className="sans" style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1 }}>{ev.date.split(" ")[1]}</div>
-                    <div className="sans" style={{ fontSize: 10, opacity: 0.6 }}>{ev.date.split(" ")[0]}</div>
+                    <div className="sans" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", opacity: 0.7 }}>{new Date(ev.date).toLocaleDateString("en-US", { weekday: "short" })}</div>
+                    <div className="sans" style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1 }}>{new Date(ev.date).getDate()}</div>
+                    <div className="sans" style={{ fontSize: 10, opacity: 0.6 }}>{new Date(ev.date).toLocaleDateString("en-US", { month: "short" })}</div>
                   </div>
                   <div>
                     <h3 style={{ fontSize: 17, fontWeight: 600, color: C.navy, marginBottom: 8, lineHeight: 1.3 }}>{ev.title}</h3>
                     <div className="sans" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       <span style={{ fontSize: 13, color: C.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                        {ev.time}
+                        {ev.start_time || ev.time}
                       </span>
                       <span style={{ fontSize: 13, color: C.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -547,7 +536,7 @@ export default function HomePage() {
                   </div>
                   <div style={{ position: "absolute", left: 20, bottom: 14 }}>
                     <span className="sans pill" style={{ background: "rgba(255,255,255,0.15)", color: "white", backdropFilter: "blur(8px)" }}>
-                      {post.category}
+                      {post.category || "Blog"}
                     </span>
                   </div>
                 </div>
@@ -559,8 +548,8 @@ export default function HomePage() {
                     {post.excerpt}
                   </p>
                   <div className="sans" style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.textMuted }}>
-                    <span>{post.date}</span>
-                    <span>{post.readTime} read</span>
+                    <span>{post.published_at ? new Date(post.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}</span>
+                    <span>{"5 min"} read</span>
                   </div>
                 </div>
               </div>
@@ -581,29 +570,29 @@ export default function HomePage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {fastingSchedule.map((fast, i) => (
+            {fastingSeasons.map((fast, i) => (
               <div key={i} className="card" style={{
                 padding: "20px 24px", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
-                borderLeft: fast.status === "active" ? `4px solid ${C.terracotta}` : `4px solid transparent`,
+                borderLeft: fast.is_active ? "active" : "upcoming" === "active" ? `4px solid ${C.terracotta}` : `4px solid transparent`,
               }}>
                 <div style={{
                   width: 50, height: 50, borderRadius: 12, flexShrink: 0,
-                  background: fast.status === "active" ? `${C.terracotta}12` : `${C.navy}08`,
+                  background: fast.is_active ? "active" : "upcoming" === "active" ? `${C.terracotta}12` : `${C.navy}08`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Cross size={18} color={fast.status === "active" ? C.terracotta : C.earthLight} />
+                  <Cross size={18} color={fast.is_active ? "active" : "upcoming" === "active" ? C.terracotta : C.earthLight} />
                 </div>
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <h3 style={{ fontSize: 18, fontWeight: 600, color: C.navy, marginBottom: 3 }}>{fast.name}</h3>
-                  <span className="sans" style={{ fontSize: 13, color: C.textMuted }}>{fast.period}</span>
+                  <span className="sans" style={{ fontSize: 13, color: C.textMuted }}>{fast.start_date + " – " + fast.end_date}</span>
                 </div>
                 <div className="sans" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 13, color: C.textMuted }}>{fast.days} days</span>
+                  <span style={{ fontSize: 13, color: C.textMuted }}>{fast.total_days} days</span>
                   <span className="pill" style={{
-                    background: fast.status === "active" ? `${C.terracotta}15` : `${C.sage}12`,
-                    color: fast.status === "active" ? C.terracotta : C.sage,
+                    background: fast.is_active ? "active" : "upcoming" === "active" ? `${C.terracotta}15` : `${C.sage}12`,
+                    color: fast.is_active ? "active" : "upcoming" === "active" ? C.terracotta : C.sage,
                   }}>
-                    {fast.status === "active" ? "● Ongoing" : "Upcoming"}
+                    {fast.is_active ? "active" : "upcoming" === "active" ? "● Ongoing" : "Upcoming"}
                   </span>
                 </div>
               </div>
