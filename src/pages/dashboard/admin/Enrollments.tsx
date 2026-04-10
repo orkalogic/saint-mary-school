@@ -28,7 +28,7 @@ export default function Enrollments() {
     setProcessing(true)
     try {
       await api.enrollments.approveEnrollment(enrollmentId, role)
-      setEnrollments(prev => prev?.map(e => e._id === enrollmentId ? { ...e, status: 'approved' as const } : e))
+      setEnrollments(prev => (prev ?? []).map(e => e._id === enrollmentId ? { ...e, status: 'approved' as const } : e))
     } catch (err) {
       console.error('Failed to approve:', err)
       alert('Failed to approve enrollment.')
@@ -41,7 +41,7 @@ export default function Enrollments() {
     setProcessing(true)
     try {
       await api.enrollments.rejectEnrollment(enrollmentId, rejectReason || 'Not specified')
-      setEnrollments(prev => prev?.map(e => e._id === enrollmentId ? { ...e, status: 'rejected' as const, rejectionReason } : e))
+      setEnrollments(prev => (prev ?? []).map(e => e._id === enrollmentId ? { ...e, status: 'rejected' as const, rejectionReason: rejectReason } : e))
       setRejectingId(null)
       setRejectReason('')
     } catch (err) {

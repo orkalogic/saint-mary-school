@@ -25,7 +25,7 @@ export default function Users() {
     setProcessing(true)
     try {
       await api.users.updateUserRole(userId, role)
-      setUsers(prev => prev?.map(u => u._id === userId ? { ...u, role: role as User['role'] } : u))
+      setUsers(prev => (prev ?? []).map(u => u._id === userId ? { ...u, role: role as User['role'] } : u))
     } catch (err) {
       console.error('Failed to update role:', err)
       alert('Failed to update user role.')
@@ -38,7 +38,7 @@ export default function Users() {
     setProcessing(true)
     try {
       await api.users.toggleUserActive(userId)
-      setUsers(prev => prev?.map(u => u._id === userId ? { ...u, isActive: !u.isActive } : u))
+      setUsers(prev => (prev ?? []).map(u => u._id === userId ? { ...u, isActive: !u.isActive } : u))
     } catch (err) {
       console.error('Failed to toggle user:', err)
       alert('Failed to toggle user status.')
