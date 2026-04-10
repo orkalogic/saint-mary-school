@@ -1,9 +1,11 @@
 // src/pages/auth/SignUp.tsx
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { Link, useNavigate } from 'react-router-dom'
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 export default function SignUp() {
+  const navigate = useNavigate()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -17,17 +19,13 @@ export default function SignUp() {
     setLoading(true)
     setError('')
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          },
-        },
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, firstName, lastName }),
       })
-      if (error) throw error
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message ?? 'Failed to create account')
       setSuccess(true)
     } catch (err: any) {
       setError(err.message ?? 'Failed to sign up')
@@ -43,9 +41,15 @@ export default function SignUp() {
         <h2 style={{ color: '#1E3A5F', fontFamily: 'Cormorant Garamond, serif', fontSize: 28 }}>
           Account Created!
         </h2>
-        <p style={{ color: '#6B7280', marginTop: 12 }}>
-          Check your email to confirm your account. After confirming, you can enroll as a student or apply as a teacher.
+        <p style={{ color: '#6B7280', marginTop: 12, marginBottom: 24 }}>
+          Your account is ready. You can now sign in and enroll as a student or apply as a teacher.
         </p>
+        <Link to="/auth/sign-in" style={{
+          display: 'inline-block', padding: '10px 24px', borderRadius: 8,
+          background: '#C9A84C', color: '#1E3A5F', fontWeight: 600, textDecoration: 'none',
+        }}>
+          Sign In
+        </Link>
       </div>
     )
   }
