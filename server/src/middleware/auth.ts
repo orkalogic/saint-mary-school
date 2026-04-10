@@ -2,6 +2,7 @@
 // Verify Supabase JWT and attach user to request
 
 import type { Request, Response, NextFunction } from 'express'
+import jwt from 'jsonwebtoken'
 import { supabaseAdmin } from '../lib/supabase.js'
 
 export interface AuthRequest extends Request {
@@ -9,6 +10,8 @@ export interface AuthRequest extends Request {
   userRole?: string
   userEmail?: string
 }
+
+const JWT_SECRET = process.env.JWT_SECRET ?? 'super-secret-jwt-token-for-development'
 
 export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization
@@ -19,20 +22,21 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
   const token = authHeader.split(' ')[1]
 
   try {
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+    // Verify the JWT using the shared secret
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as any
 
-    if (error || !user) {
-      return res.status(401).json({ message: 'Invalid or expired token' })
+    if (!decoded?.sub) {
+      return res.status(401).json({ message: 'Invalid token: missing subject' })
     }
 
-    req.userId = user.id
-    req.userEmail = user.email
+    req.userId = decoded.sub
+    req.userEmail = decoded.email
 
     // Fetch user profile from our users table
     const { data: profile } = await supabaseAdmin
       .from('users')
       .select('role, is_active')
-      .eq('clerk_id', user.id)
+      .eq('clerk_id', decoded.sub)
       .single()
 
     if (!profile) {
@@ -45,7 +49,10 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
     }
 
     next()
-  } catch {
+  } catch (err: any) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' })
+    }
     return res.status(401).json({ message: 'Authentication failed' })
   }
 }

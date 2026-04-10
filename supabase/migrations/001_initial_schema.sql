@@ -342,12 +342,13 @@ ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 -- The API server handles all authorization logic.
 
 -- Users: authenticated users can read their own profile
+-- Note: We use clerk_id (text) to match against auth.uid()::text for compatibility
 CREATE POLICY "Users can read own profile" ON users
-  FOR SELECT USING (clerk_id = auth.uid());
+  FOR SELECT USING (clerk_id = auth.uid()::text);
 
 -- Enrollment requests: users can read their own
 CREATE POLICY "Users can read own enrollments" ON enrollment_requests
-  FOR SELECT USING (clerk_id = auth.uid());
+  FOR SELECT USING (clerk_id = auth.uid()::text);
 
 -- Notifications: users can read their own
 CREATE POLICY "Users can read own notifications" ON notifications

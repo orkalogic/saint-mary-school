@@ -8,11 +8,9 @@ services:
     ports:
       - "3000:80"
     environment:
-      - VITE_SUPABASE_URL=http://localhost:8000
+      - VITE_SUPABASE_URL=http://host.docker.internal:8000
       - VITE_SUPABASE_ANON_KEY=your-anon-key
-      - VITE_API_URL=http://localhost:3001
-    depends_on:
-      - supabase
+      - VITE_API_URL=http://host.docker.internal:3001
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/"]
@@ -20,102 +18,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  # ── Supabase (Self-Hosted Backend) ──
-  supabase:
-    image: supabase/postgres:15.1.1.58
-    container_name: saint-mary-db
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    volumes:
-      - supabase-data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── Supabase Auth (GoTrue) ──
-  supabase-auth:
-    image: supabase/gotrue:v2.158.1
-    container_name: saint-mary-auth
-    ports:
-      - "9999:9999"
-    environment:
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: 9999
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@supabase:5432/postgres
-      GOTRUE_SITE_URL: http://localhost:3000
-      GOTRUE_URI_ALLOW_LIST: http://localhost:3000
-      GOTRUE_JWT_SECRET: super-secret-jwt-token-for-development
-      GOTRUE_JWT_EXP: 3600
-      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-      GOTRUE_MAILER_AUTOCONFIRM: "true"
-    depends_on:
-      supabase:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── Supabase REST API (PostgREST) ──
-  supabase-rest:
-    image: postgrest/postgrest:v12.2.0
-    container_name: saint-mary-rest
-    ports:
-      - "3001:3000"
-    environment:
-      PGRST_DB_URI: postgres://postgres:postgres@supabase:5432/postgres
-      PGRST_DB_SCHEMAS: public
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: super-secret-jwt-token-for-development
-    depends_on:
-      supabase:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── Supabase Realtime ──
-  supabase-realtime:
-    image: supabase/realtime:v2.30.23
-    container_name: saint-mary-realtime
-    ports:
-      - "4000:4000"
-    environment:
-      DB_HOST: supabase
-      DB_PORT: 5432
-      DB_NAME: postgres
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      SECRET_KEY_BASE: super-secret-jwt-token-for-development
-    depends_on:
-      supabase:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── Supabase Storage ──
-  supabase-storage:
-    image: supabase/storage-api:v1.0.6
-    container_name: saint-mary-storage
-    ports:
-      - "5000:5000"
-    environment:
-      ANON_KEY: your-anon-key
-      SERVICE_KEY: your-service-role-key
-      PGRST_JWT_SECRET: super-secret-jwt-token-for-development
-      DATABASE_URL: postgres://postgres:postgres@supabase:5432/postgres
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      GLOBAL_S3_PROTOCOL: http
-    volumes:
-      - supabase-storage:/var/lib/storage
-    depends_on:
-      supabase:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  supabase-data:
-  supabase-storage:
