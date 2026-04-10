@@ -2,11 +2,22 @@
 // API layer — communicates with our Express backend (which talks to Supabase)
 // This replaces the Convex `api` object pattern
 
+import { supabase } from './supabase'
+
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  // Get the current Supabase session token
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...options.headers as Record<string, string> }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers,
     credentials: 'include',
     ...options,
   })
