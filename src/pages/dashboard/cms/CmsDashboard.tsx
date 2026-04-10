@@ -36,6 +36,8 @@ export default function CmsDashboard() {
   const [showMediaLib, setShowMediaLib] = useState(false)
   const [eventMediaMode, setEventMediaMode] = useState<string | null>(null)
   const [eventMediaItems, setEventMediaItems] = useState<any[]>([])
+  const [pendingFiles, setPendingFiles] = useState<FileList | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'assistant'
 
@@ -126,14 +128,38 @@ export default function CmsDashboard() {
   }
 
   const handleMediaUpload = async (eventId: string, files: FileList) => {
+    setUploading(true)
+    let successCount = 0
     for (const file of Array.from(files)) {
       const isVideo = file.type.startsWith('video')
       const ext = file.name.split('.').pop() || 'jpg'
       const path = `events/${eventId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('cms-media').upload(path, file, { contentType: file.type })
-      if (uploadError) { console.error('Upload failed:', uploadError); continue }
-      const { data: { publicUrl } } = supabase.storage.from('cms-media').getPublicUrl(path).data
-      await api.cms.eventMedia.create({ event_id: eventId, type: isVideo ? 'video' : 'image', url: publicUrl, title: file.name.split('.')[0] }).catch(console.error)
+      try {
+        const { data: uploadData, error: uploadError } = await supabase.storage.from('cms-media').upload(path, file, { contentType: file.type })
+        if (uploadError) {
+          console.error('Storage upload failed:', uploadError)
+          alert(`Failed to upload ${file.name}: ${uploadError.message}`)
+          continue
+        }
+        const { data: { publicUrl } } = supabase.storage.from('cms-media').getPublicUrl(path).data
+        console.log('Uploaded:', { path, publicUrl })
+        try {
+          const mediaRecord = await api.cms.eventMedia.create({ event_id: eventId, type: isVideo ? 'video' : 'image', url: publicUrl, title: file.name.split('.')[0] })
+          console.log('Media record created:', mediaRecord)
+          successCount++
+        } catch (dbErr: any) {
+          console.error('DB record failed:', dbErr)
+          alert(`Failed to save ${file.name} to database: ${dbErr.message}`)
+        }
+      } catch (err: any) {
+        console.error('Upload error:', err)
+        alert(`Error uploading ${file.name}: ${err.message}`)
+      }
+    }
+    setUploading(false)
+    setPendingFiles(null)
+    if (successCount > 0) {
+      alert(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}!`)
     }
     loadEventMedia(eventId)
   }
@@ -278,7 +304,20 @@ export default function CmsDashboard() {
                   <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1E3A5F', margin: 0 }}>📸 Media for: {events.find(e => e.id === eventMediaMode)?.title}</h3>
                   <button onClick={() => setEventMediaMode(null)} style={{ padding: '4px 12px', borderRadius: 6, background: '#E5E7EB', border: 'none', cursor: 'pointer', fontSize: 13 }}>Close</button>
                 </div>
-                <input type="file" accept="image/*,video/*" multiple onChange={e => e.target.files && handleMediaUpload(eventMediaMode, e.target.files)} style={{ marginBottom: 16 }} />
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                  <input id="media-upload" type="file" accept="image/*,video/*" multiple onChange={e => setPendingFiles(e.target.files)} style={{ display: 'none' }} />
+                  <label htmlFor="media-upload" style={{ padding: '8px 20px', borderRadius: 8, background: '#1E3A5F', color: 'white', fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 14, display: 'inline-block' }}>
+                    📁 Choose Files
+                  </label>
+                  {pendingFiles && (
+                    <>
+                      <span style={{ fontSize: 14, color: '#6B7280' }}>{pendingFiles.length} file{pendingFiles.length > 1 ? 's' : ''} selected</span>
+                      <button onClick={() => handleMediaUpload(eventMediaMode, pendingFiles)} disabled={uploading} style={{ padding: '8px 20px', borderRadius: 8, background: '#10B981', color: 'white', fontWeight: 600, border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 14 }}>
+                        {uploading ? '⏳ Uploading...' : '⬆️ Upload'}
+                      </button>
+                    </>
+                  )}
+                </div>
                 {eventMediaItems.length === 0 ? (
                   <p style={{ color: '#6B7280', fontSize: 14 }}>No media yet. Upload images or videos above.</p>
                 ) : (
