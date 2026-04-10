@@ -5,12 +5,12 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser'
 
 export default function Users() {
   const { convexUser, isLoading } = useCurrentUser()
-  const [users, setUsers] = useState<User[] | null>(null)
+  const [users, setUsers] = useState<any[] | null>(null)
   const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     if (convexUser?.role === 'admin') {
-      api.users.getAllUsers().then(setUsers).catch(console.error)
+      api.users.users.getAll().then(setUsers).catch(console.error)
     }
   }, [convexUser])
 
@@ -24,8 +24,8 @@ export default function Users() {
   const handleRoleChange = async (userId: string, role: string) => {
     setProcessing(true)
     try {
-      await api.users.updateUserRole(userId, role)
-      setUsers(prev => (prev ?? []).map(u => u._id === userId ? { ...u, role: role as User['role'] } : u))
+      await api.users.users.updateRole(userId, role)
+      setUsers(prev => (prev ?? []).map(u => u.id === userId ? { ...u, role } : u))
     } catch (err) {
       console.error('Failed to update role:', err)
       alert('Failed to update user role.')
@@ -37,11 +37,25 @@ export default function Users() {
   const handleToggleActive = async (userId: string) => {
     setProcessing(true)
     try {
-      await api.users.toggleUserActive(userId)
-      setUsers(prev => (prev ?? []).map(u => u._id === userId ? { ...u, isActive: !u.isActive } : u))
+      await api.users.users.toggleActive(userId)
+      setUsers(prev => (prev ?? []).map(u => u.id === userId ? { ...u, is_active: !u.is_active } : u))
     } catch (err) {
       console.error('Failed to toggle user:', err)
       alert('Failed to toggle user status.')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleDelete = async (userId: string) => {
+    if (!confirm('Delete this user permanently?')) return
+    setProcessing(true)
+    try {
+      await api.users.users.delete(userId)
+      setUsers(prev => (prev ?? []).filter(u => u.id !== userId))
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+      alert('Failed to delete user.')
     } finally {
       setProcessing(false)
     }
@@ -60,41 +74,52 @@ export default function Users() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {users.map((u) => (
-            <div key={u._id} style={{
+            <div key={u.id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '14px 20px', borderRadius: 8, border: '1px solid #E5E7EB',
-              background: u.isActive ? 'white' : '#F9FAFB', opacity: u.isActive ? 1 : 0.6,
+              background: u.is_active ? 'white' : '#F9FAFB', opacity: u.is_active ? 1 : 0.6,
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontWeight: 600, color: '#1E3A5F' }}>{u.firstName} {u.lastName}</span>
-                  {!u.isActive && (
+                  <span style={{ fontWeight: 600, color: '#1E3A5F' }}>{u.first_name} {u.last_name}</span>
+                  {!u.is_active && (
                     <span style={{ fontSize: 11, color: '#DC2626', background: '#FEE2E2', padding: '1px 8px', borderRadius: 10 }}>INACTIVE</span>
                   )}
                 </div>
                 <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
-                  {u.email || 'No email'} | Joined {new Date(u.createdAt).toLocaleDateString()}
+                  {u.email || 'No email'} | Joined {new Date(u.created_at).toLocaleDateString()}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <select
                   value={u.role}
-                  onChange={(e) => handleRoleChange(u._id, e.target.value)}
+                  onChange={(e) => handleRoleChange(u.id, e.target.value)}
                   disabled={processing}
                   style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #D1D5DB', fontSize: 13, textTransform: 'capitalize' as const, cursor: processing ? 'not-allowed' : 'pointer' }}
                 >
                   {roles.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
                 <button
-                  onClick={() => handleToggleActive(u._id)}
+                  onClick={() => handleToggleActive(u.id)}
                   disabled={processing}
                   style={{
                     padding: '4px 12px', borderRadius: 6, border: '1px solid #D1D5DB',
                     background: 'white', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer',
-                    color: u.isActive ? '#DC2626' : '#10B981',
+                    color: u.is_active ? '#DC2626' : '#10B981',
                   }}
                 >
-                  {processing ? '...' : u.isActive ? 'Deactivate' : 'Activate'}
+                  {processing ? '...' : u.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+                <button
+                  onClick={() => handleDelete(u.id)}
+                  disabled={processing}
+                  style={{
+                    padding: '4px 12px', borderRadius: 6, border: '1px solid #DC2626',
+                    background: '#FEE2E2', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer',
+                    color: '#DC2626',
+                  }}
+                >
+                  {processing ? '...' : 'Delete'}
                 </button>
               </div>
             </div>

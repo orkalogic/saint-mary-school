@@ -12,6 +12,7 @@ import ParentRegistration from './pages/enroll/Parent'
 import AdminDashboard from './pages/dashboard/admin/AdminDashboard'
 import Enrollments from './pages/dashboard/admin/Enrollments'
 import Users from './pages/dashboard/admin/Users'
+import CmsManager from './pages/dashboard/admin/CmsManager'
 import StudentDashboard from './pages/dashboard/StudentDashboard'
 import TeacherDashboard from './pages/dashboard/TeacherDashboard'
 import ParentDashboard from './pages/dashboard/ParentDashboard'
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/dashboard/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/dashboard/admin/enrollments" element={<ProtectedRoute><Enrollments /></ProtectedRoute>} />
         <Route path="/dashboard/admin/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+        <Route path="/dashboard/admin/cms" element={<ProtectedRoute><CmsManager /></ProtectedRoute>} />
         <Route path="/dashboard/student" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
         <Route path="/dashboard/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
         <Route path="/dashboard/parent" element={<ProtectedRoute><ParentDashboard /></ProtectedRoute>} />
@@ -110,6 +112,7 @@ function NavBar() {
         { path: '/dashboard/admin', label: 'Dashboard' },
         { path: '/dashboard/admin/enrollments', label: 'Enrollments' },
         { path: '/dashboard/admin/users', label: 'Users' },
+        { path: '/dashboard/admin/cms', label: 'CMS' },
       )
     } else if (convexUser.role === 'teacher') {
       dashLinks.push({ path: '/dashboard/teacher', label: 'Dashboard' })

@@ -9,7 +9,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (convexUser?.role === 'admin') {
-      api.users.getDashboardStats().then(setStats).catch(console.error)
+      api.users.users.getDashboardStats().then(setStats).catch(console.error)
     }
   }, [convexUser])
 
@@ -32,7 +32,7 @@ export default function AdminDashboard() {
         Admin Dashboard
       </h2>
       <p style={{ color: '#6B7280', marginBottom: 32 }}>
-        Welcome back, {convexUser.firstName}. Here is an overview of the school.
+        Welcome back, {(convexUser as any).first_name}. Here is an overview of the school.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>

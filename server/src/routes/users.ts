@@ -93,4 +93,38 @@ router.patch('/toggle', requireAuth, requireRole('admin', 'assistant'), async (r
   }
 })
 
+// DELETE /api/users/:id — delete a user (admin only)
+router.delete('/:id', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params
+
+    // Don't allow self-deletion
+    if (id === req.userId) {
+      return res.status(400).json({ message: 'You cannot delete your own account' })
+    }
+
+    // Also delete the auth user
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('clerk_id')
+      .eq('id', id)
+      .single()
+
+    if (user?.clerk_id) {
+      await supabaseAdmin.auth.admin.deleteUser(user.clerk_id).catch(() => {})
+    }
+
+    const { error } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    res.json(true)
+  } catch (err: any) {
+    console.error('Error deleting user:', err)
+    res.status(500).json({ message: err.message ?? 'Failed to delete user' })
+  }
+})
+
 export default router

@@ -13,7 +13,7 @@ export default function Enrollments() {
 
   useEffect(() => {
     if (convexUser?.role === 'admin') {
-      api.enrollments.getAllEnrollments().then(setEnrollments).catch(console.error)
+      api.enrollments.enrollments.getAll().then(setEnrollments).catch(console.error)
     }
   }, [convexUser])
 
@@ -27,8 +27,8 @@ export default function Enrollments() {
   const handleApprove = async (enrollmentId: string, role: string) => {
     setProcessing(true)
     try {
-      await api.enrollments.approveEnrollment(enrollmentId, role)
-      setEnrollments(prev => (prev ?? []).map(e => e._id === enrollmentId ? { ...e, status: 'approved' as const } : e))
+      await api.enrollments.enrollments.approve(enrollmentId, role)
+      setEnrollments(prev => (prev ?? []).map(e => e.id === enrollmentId ? { ...e, status: 'approved' as const } : e))
     } catch (err) {
       console.error('Failed to approve:', err)
       alert('Failed to approve enrollment.')
@@ -40,8 +40,8 @@ export default function Enrollments() {
   const handleReject = async (enrollmentId: string) => {
     setProcessing(true)
     try {
-      await api.enrollments.rejectEnrollment(enrollmentId, rejectReason || 'Not specified')
-      setEnrollments(prev => (prev ?? []).map(e => e._id === enrollmentId ? { ...e, status: 'rejected' as const, rejectionReason: rejectReason } : e))
+      await api.enrollments.enrollments.reject(enrollmentId, rejectReason || 'Not specified')
+      setEnrollments(prev => (prev ?? []).map(e => e.id === enrollmentId ? { ...e, status: 'rejected' as const, rejection_reason: rejectReason } : e))
       setRejectingId(null)
       setRejectReason('')
     } catch (err) {
@@ -84,12 +84,12 @@ export default function Enrollments() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((e) => (
-            <div key={e._id} style={{ padding: 20, borderRadius: 10, border: '1px solid #E5E7EB', background: 'white' }}>
+            <div key={e.id} style={{ padding: 20, borderRadius: 10, border: '1px solid #E5E7EB', background: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 16, fontWeight: 600, color: '#1E3A5F' }}>
-                      {e.firstName} {e.lastName}
+                      {e.first_name} {e.last_name}
                     </span>
                     <span style={{
                       padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
@@ -106,23 +106,23 @@ export default function Enrollments() {
                     {e.phone && <span>{e.phone} | </span>}
                     {e.grade && <span>Grade: {e.grade} | </span>}
                     {e.qualifications && <span>Qual: {e.qualifications}</span>}
-                    {e.preferredSubjects && e.preferredSubjects.length > 0 && (
-                      <span> Subjects: {e.preferredSubjects.join(', ')}</span>
+                    {e.preferred_subjects && e.preferred_subjects.length > 0 && (
+                      <span> Subjects: {e.preferred_subjects.join(', ')}</span>
                     )}
                   </div>
-                  {e.parentEmail && (
+                  {e.parent_email && (
                     <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
-                      Parent: {e.parentEmail} {e.parentPhone && `| ${e.parentPhone}`}
+                      Parent: {e.parent_email} {e.parent_phone && `| ${e.parent_phone}`}
                     </div>
                   )}
-                  {e.rejectionReason && (
-                    <div style={{ fontSize: 13, color: '#DC2626', marginTop: 4 }}>Reason: {e.rejectionReason}</div>
+                  {e.rejection_reason && (
+                    <div style={{ fontSize: 13, color: '#DC2626', marginTop: 4 }}>Reason: {e.rejection_reason}</div>
                   )}
                 </div>
 
                 {e.status === 'pending' && (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {rejectingId === e._id ? (
+                    {rejectingId === e.id ? (
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <input
                           value={rejectReason}
@@ -130,7 +130,7 @@ export default function Enrollments() {
                           placeholder="Rejection reason..."
                           style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #D1D5DB', fontSize: 13, width: 200 }}
                         />
-                        <button onClick={() => handleReject(e._id)} disabled={processing} style={{ padding: '6px 12px', borderRadius: 6, background: '#DC2626', color: 'white', border: 'none', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer' }}>
+                        <button onClick={() => handleReject(e.id)} disabled={processing} style={{ padding: '6px 12px', borderRadius: 6, background: '#DC2626', color: 'white', border: 'none', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer' }}>
                           {processing ? '...' : 'Confirm'}
                         </button>
                         <button onClick={() => { setRejectingId(null); setRejectReason('') }} disabled={processing} style={{ padding: '6px 12px', borderRadius: 6, background: '#E5E7EB', color: '#374151', border: 'none', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer' }}>
@@ -139,10 +139,10 @@ export default function Enrollments() {
                       </div>
                     ) : (
                       <>
-                        <button onClick={() => handleApprove(e._id, e.role)} disabled={processing} style={{ padding: '6px 16px', borderRadius: 6, background: '#10B981', color: 'white', border: 'none', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+                        <button onClick={() => handleApprove(e.id, e.role)} disabled={processing} style={{ padding: '6px 16px', borderRadius: 6, background: '#10B981', color: 'white', border: 'none', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
                           {processing ? '...' : 'Approve'}
                         </button>
-                        <button onClick={() => setRejectingId(e._id)} disabled={processing} style={{ padding: '6px 16px', borderRadius: 6, background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+                        <button onClick={() => setRejectingId(e.id)} disabled={processing} style={{ padding: '6px 16px', borderRadius: 6, background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', fontSize: 13, cursor: processing ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
                           Reject
                         </button>
                       </>

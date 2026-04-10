@@ -1,11 +1,10 @@
 // src/pages/auth/SignUp.tsx
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 export default function SignUp() {
-  const navigate = useNavigate()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
