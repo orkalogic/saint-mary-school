@@ -105,7 +105,7 @@ export default function HomePage() {
       api.cms.verses.getAll().catch(() => []),
     ]).then(([e, b, f, v]) => {
       setEvents(e || []);
-      setBlogPosts(b || []);
+      setBlogPosts((b || []).filter(p => p.category !== "page"));
       setFastingSeasons(f || []);
       setVerses(v || []);
       setLoading(false);
@@ -443,9 +443,9 @@ export default function HomePage() {
                 verseIdx === i && (
                   <div key={i} style={{ animation: "fadeUp 0.6s ease-out" }}>
                     <p style={{ fontSize: "clamp(18px, 2.8vw, 24px)", fontWeight: 400, fontStyle: "italic", color: C.earth, lineHeight: 1.65, marginBottom: 14 }}>
-                      "{v.text}"
+                      "{v.text || ""}"
                     </p>
-                    <span className="sans" style={{ fontSize: 13, fontWeight: 600, color: C.gold, letterSpacing: 1 }}>— {v.ref}</span>
+                    <span className="sans" style={{ fontSize: 13, fontWeight: 600, color: C.gold, letterSpacing: 1 }}>— {v.reference || v.ref}</span>
                   </div>
                 )
               ))}
@@ -570,33 +570,37 @@ export default function HomePage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {fastingSeasons.map((fast, i) => (
+            {fastingSeasons.map((fast, i) => {
+              const isActive = fast.is_active;
+              return (
               <div key={i} className="card" style={{
                 padding: "20px 24px", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
-                borderLeft: fast.is_active ? "active" : "upcoming" === "active" ? `4px solid ${C.terracotta}` : `4px solid transparent`,
+                borderLeft: isActive ? `4px solid ${C.terracotta}` : `4px solid transparent`,
               }}>
                 <div style={{
                   width: 50, height: 50, borderRadius: 12, flexShrink: 0,
-                  background: fast.is_active ? "active" : "upcoming" === "active" ? `${C.terracotta}12` : `${C.navy}08`,
+                  background: isActive ? `${C.terracotta}12` : `${C.navy}08`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Cross size={18} color={fast.is_active ? "active" : "upcoming" === "active" ? C.terracotta : C.earthLight} />
+                  <Cross size={18} color={isActive ? C.terracotta : C.earthLight} />
                 </div>
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <h3 style={{ fontSize: 18, fontWeight: 600, color: C.navy, marginBottom: 3 }}>{fast.name}</h3>
-                  <span className="sans" style={{ fontSize: 13, color: C.textMuted }}>{fast.start_date + " – " + fast.end_date}</span>
+                  {fast.name_geez && <span className="sans" style={{ fontSize: 13, color: C.gold, marginBottom: 2 }}>{fast.name_geez}</span>}
+                  <span className="sans" style={{ fontSize: 13, color: C.textMuted }}>{fast.start_date} – {fast.end_date}</span>
                 </div>
                 <div className="sans" style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontSize: 13, color: C.textMuted }}>{fast.total_days} days</span>
                   <span className="pill" style={{
-                    background: fast.is_active ? "active" : "upcoming" === "active" ? `${C.terracotta}15` : `${C.sage}12`,
-                    color: fast.is_active ? "active" : "upcoming" === "active" ? C.terracotta : C.sage,
+                    background: isActive ? `${C.terracotta}15` : `${C.sage}12`,
+                    color: isActive ? C.terracotta : C.sage,
                   }}>
-                    {fast.is_active ? "active" : "upcoming" === "active" ? "● Ongoing" : "Upcoming"}
+                    {isActive ? "● Ongoing" : "Upcoming"}
                   </span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

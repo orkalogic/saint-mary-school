@@ -8,6 +8,8 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import SignIn from './pages/auth/SignIn'
 import SignUp from './pages/auth/SignUp'
+import Events from './pages/Events'
+import Blog from './pages/Blog'
 import StudentEnrollment from './pages/enroll/Student'
 import TeacherEnrollment from './pages/enroll/Teacher'
 import ParentRegistration from './pages/enroll/Parent'
@@ -34,6 +36,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/blog" element={<Blog />} />
         <Route path="/auth/sign-in" element={<SignIn />} />
         <Route path="/auth/sign-up" element={<SignUp />} />
         <Route path="/enroll/student" element={<StudentEnrollment />} />
