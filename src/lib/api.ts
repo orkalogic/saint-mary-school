@@ -198,6 +198,12 @@ export const api = {
       create: (data: CreateCmsVerseInput) => request<CmsVerse>('/cms/verses', { method: 'POST', body: JSON.stringify(data) }),
       delete: (id: string) => request<boolean>(`/cms/verses/${id}`, { method: 'DELETE' }),
     },
+    pages: {
+      getAll: () => request<any[]>('/cms/pages'),
+      create: (data: any) => request<any>('/cms/pages', { method: 'POST', body: JSON.stringify(data) }),
+      update: (id: string, data: any) => request<boolean>(`/cms/pages/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+      delete: (id: string) => request<boolean>(`/cms/pages/${id}`, { method: 'DELETE' }),
+    },
   },
 
   // Meetings

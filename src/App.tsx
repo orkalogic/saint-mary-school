@@ -50,7 +50,6 @@ export default function App() {
         <Route path="/dashboard/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
         <Route path="/dashboard/parent" element={<ProtectedRoute><ParentDashboard /></ProtectedRoute>} />
       </Routes>
-      <NotificationBell />
       <AIChat />
     </>
   )

@@ -154,4 +154,45 @@ router.delete('/verses/:id', requireAuth, requireRole('admin', 'assistant'), asy
   } catch (err: any) { res.status(500).json({ message: err.message }) }
 })
 
+// ── Page Content (About, Contact) ──
+router.get('/pages', async (_req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('blog_posts')
+      .select('*')
+      .eq('category', 'page')
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    res.json(data ?? [])
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
+router.post('/pages', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('blog_posts')
+      .insert({ ...req.body, author_id: req.userId, category: 'page', created_at: Date.now(), is_published: true })
+      .select()
+      .single()
+    if (error) throw error
+    res.json(data)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
+router.patch('/pages/:id', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { error } = await supabaseAdmin.from('blog_posts').update(req.body).eq('id', req.params.id).eq('category', 'page')
+    if (error) throw error
+    res.json(true)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
+router.delete('/pages/:id', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { error } = await supabaseAdmin.from('blog_posts').delete().eq('id', req.params.id)
+    if (error) throw error
+    res.json(true)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
 export default router

@@ -5,12 +5,14 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser'
 
 export default function CmsManager() {
   const { convexUser, isLoading } = useCurrentUser()
-  const [activeTab, setActiveTab] = useState<'events' | 'blog' | 'news' | 'fasting' | 'verses'>('events')
+  const [activeTab, setActiveTab] = useState<'events' | 'blog' | 'news' | 'fasting' | 'verses' | 'about' | 'contact'>('events')
   const [events, setEvents] = useState<any[]>([])
   const [blog, setBlog] = useState<any[]>([])
   const [news, setNews] = useState<any[]>([])
   const [fasting, setFasting] = useState<any[]>([])
   const [verses, setVerses] = useState<any[]>([])
+  const [aboutPages, setAboutPages] = useState<any[]>([])
+  const [contactPages, setContactPages] = useState<any[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -22,6 +24,10 @@ export default function CmsManager() {
       api.cms.news.getAll().then(setNews).catch(console.error)
       api.cms.fasting.getAll().then(setFasting).catch(console.error)
       api.cms.verses.getAll().then(setVerses).catch(console.error)
+      api.cms.pages.getAll().then(pages => {
+        setAboutPages(pages?.filter(p => p.title?.startsWith('about:')) || [])
+        setContactPages(pages?.filter(p => p.title?.startsWith('contact:')) || [])
+      }).catch(console.error)
     }
   }, [convexUser])
 
@@ -36,17 +42,22 @@ export default function CmsManager() {
     { key: 'news' as const, label: 'News' },
     { key: 'fasting' as const, label: 'Fasting' },
     { key: 'verses' as const, label: 'Verses' },
+    { key: 'about' as const, label: 'About' },
+    { key: 'contact' as const, label: 'Contact' },
   ]
 
   const handleCreate = async () => {
     setLoading(true)
     try {
       const data = { ...form }
+      if (activeTab === 'about') data.title = 'about:' + (data.section || 'general')
+      if (activeTab === 'contact') data.title = 'contact:' + (data.section || 'general')
       if (activeTab === 'events') await api.cms.events.create(data as any)
       else if (activeTab === 'blog') await api.cms.blog.create(data as any)
       else if (activeTab === 'news') await api.cms.news.create(data as any)
       else if (activeTab === 'fasting') await api.cms.fasting.create(data as any)
       else if (activeTab === 'verses') await api.cms.verses.create(data as any)
+      else if (activeTab === 'about' || activeTab === 'contact') await api.cms.pages.create(data as any)
       setForm({})
       setShowForm(false)
       refresh()
@@ -61,6 +72,7 @@ export default function CmsManager() {
       else if (activeTab === 'news') await api.cms.news.delete(id)
       else if (activeTab === 'fasting') await api.cms.fasting.delete(id)
       else if (activeTab === 'verses') await api.cms.verses.delete(id)
+      else if (activeTab === 'about' || activeTab === 'contact') await api.cms.pages.delete(id)
       refresh()
     } catch (err) { alert('Failed to delete') }
   }
@@ -71,6 +83,10 @@ export default function CmsManager() {
     api.cms.news.getAll().then(setNews).catch(console.error)
     api.cms.fasting.getAll().then(setFasting).catch(console.error)
     api.cms.verses.getAll().then(setVerses).catch(console.error)
+    api.cms.pages.getAll().then(pages => {
+      setAboutPages(pages?.filter(p => p.title?.startsWith('about:')) || [])
+      setContactPages(pages?.filter(p => p.title?.startsWith('contact:')) || [])
+    }).catch(console.error)
   }
 
   const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB', fontSize: 14, marginBottom: 8, boxSizing: 'border-box' as const }
@@ -118,6 +134,13 @@ export default function CmsManager() {
             <input value={form.reference || ''} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))} placeholder="Reference (e.g., Joshua 1:9)" style={inputStyle} />
           </>
         )}
+        {(activeTab === 'about' || activeTab === 'contact') && (
+          <>
+            <input value={form.section || ''} onChange={e => setForm(p => ({ ...p, section: e.target.value }))} placeholder={activeTab === 'about' ? "Section (e.g., mission, curriculum)" : "Section (e.g., service_times, location)"} style={inputStyle} />
+            <input value={form.title_display || ''} onChange={e => setForm(p => ({ ...p, title_display: e.target.value }))} placeholder="Display title" style={inputStyle} />
+            <textarea value={form.content || ''} onChange={e => setForm(p => ({ ...p, content: e.target.value }))} placeholder="Content (HTML or plain text)" rows={5} style={inputStyle} />
+          </>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <button onClick={handleCreate} disabled={loading} style={{ padding: '6px 16px', borderRadius: 6, background: '#10B981', color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
             {loading ? 'Creating...' : 'Create'}
@@ -129,16 +152,17 @@ export default function CmsManager() {
   }
 
   const renderList = () => {
-    const items = activeTab === 'events' ? events : activeTab === 'blog' ? blog : activeTab === 'news' ? news : activeTab === 'fasting' ? fasting : verses
-    if (items.length === 0) return <p style={{ color: '#6B7280' }}>Nothing here yet.</p>
+    const items = activeTab === 'events' ? events : activeTab === 'blog' ? blog : activeTab === 'news' ? news : activeTab === 'fasting' ? fasting : activeTab === 'verses' ? verses : activeTab === 'about' ? aboutPages : contactPages
+    if (items.length === 0) return <p style={{ color: '#6B7280' }}>Nothing here yet. Click "+ New" to add content.</p>
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.map((item: any) => (
           <div key={item.id} style={{ padding: 16, borderRadius: 8, border: '1px solid #E5E7EB', background: 'white' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <h4 style={{ color: '#1E3A5F', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.title || item.name || item.text}</h4>
+                <h4 style={{ color: '#1E3A5F', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.title_display || item.section || item.title || item.name || item.text}</h4>
                 {item.description && <p style={{ color: '#6B7280', fontSize: 14 }}>{item.description}</p>}
+                {item.content && <p style={{ color: '#6B7280', fontSize: 13, whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden' }}>{item.content}</p>}
                 {item.date && <span style={{ fontSize: 13, color: '#9CA3AF' }}>{new Date(item.date).toLocaleDateString()}</span>}
                 {item.reference && <span style={{ fontSize: 13, color: '#9CA3AF' }}>{item.reference}</span>}
               </div>
