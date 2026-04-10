@@ -1,7 +1,6 @@
 // src/pages/dashboard/cms/CmsDashboard.tsx
 import { useState, useEffect } from 'react'
 import { api } from '../../../lib/api'
-import { supabase } from '../../../lib/supabase'
 import { useCurrentUser } from '../../../hooks/useCurrentUser'
 import ImageUpload from '../../../components/ImageUpload'
 import MediaLibrary from '../../../components/MediaLibrary'
@@ -133,24 +132,26 @@ export default function CmsDashboard() {
     for (const file of Array.from(files)) {
       const isVideo = file.type.startsWith('video')
       const ext = file.name.split('.').pop() || 'jpg'
-      const path = `events/${eventId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const filePath = `events/${eventId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
       try {
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('cms-media').upload(path, file, { contentType: file.type })
-        if (uploadError) {
-          console.error('Storage upload failed:', uploadError)
-          alert(`Failed to upload ${file.name}: ${uploadError.message}`)
-          continue
-        }
-        const { data: { publicUrl } } = supabase.storage.from('cms-media').getPublicUrl(path).data
-        console.log('Uploaded:', { path, publicUrl })
-        try {
-          const mediaRecord = await api.cms.eventMedia.create({ event_id: eventId, type: isVideo ? 'video' : 'image', url: publicUrl, title: file.name.split('.')[0] })
-          console.log('Media record created:', mediaRecord)
-          successCount++
-        } catch (dbErr: any) {
-          console.error('DB record failed:', dbErr)
-          alert(`Failed to save ${file.name} to database: ${dbErr.message}`)
-        }
+        // Upload file through our API server (bypasses storage RLS)
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('bucket', 'cms-media')
+        formData.append('path', filePath)
+
+        const uploadResult = await api.cms.eventMedia.uploadFile(formData)
+        console.log('Uploaded:', uploadResult)
+
+        // Create database record
+        await api.cms.eventMedia.create({
+          event_id: eventId,
+          type: isVideo ? 'video' : 'image',
+          url: uploadResult.publicUrl,
+          title: file.name.split('.')[0],
+        })
+        successCount++
       } catch (err: any) {
         console.error('Upload error:', err)
         alert(`Error uploading ${file.name}: ${err.message}`)

@@ -10,7 +10,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...options.headers as Record<string, string> }
+  const headers: Record<string, string> = {}
+  // Don't set Content-Type for FormData - browser sets it with boundary
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
+  }
+  if (options.headers) {
+    Object.assign(headers, options.headers as Record<string, string>)
+  }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
@@ -206,7 +213,8 @@ export const api = {
     },
     eventMedia: {
       getAll: (eventId: string) => request<any[]>(`/cms/event-media/${eventId}`),
-      create: (data: any) => request<any>('/cms/event-media', { method: 'POST', body: JSON.stringify(data) }),
+      uploadFile: (formData: FormData) => request<any>('/upload', { method: 'POST', body: formData }),
+      create: (data: any) => request<any>('/cms/event-media/upload', { method: 'POST', body: JSON.stringify(data) }),
       delete: (id: string) => request<boolean>(`/cms/event-media/${id}`, { method: 'DELETE' }),
       batchDelete: (ids: string[]) => request<boolean>('/cms/event-media/batch-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
     },

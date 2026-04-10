@@ -196,6 +196,20 @@ router.delete('/pages/:id', requireAuth, requireRole('admin', 'assistant'), asyn
 })
 
 // ── Event Media (images/videos per event) ──
+// Upload via server to bypass storage RLS (uses service role key)
+router.post('/event-media/upload', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { event_id, type, url, title, display_order } = req.body
+    const { data, error } = await supabaseAdmin
+      .from('event_media')
+      .insert({ event_id, type, url, title: title || null, display_order: display_order || 0, created_at: Date.now() })
+      .select()
+      .single()
+    if (error) throw error
+    res.json(data)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
 router.get('/event-media/:eventId', async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
@@ -204,7 +218,13 @@ router.get('/event-media/:eventId', async (req, res) => {
       .eq('event_id', req.params.eventId)
       .order('display_order', { ascending: true })
     if (error) throw error
-    res.json(data ?? [])
+    // Rewrite localhost URLs to public URL
+    const pubUrl = process.env.SUPABASE_PUBLIC_URL || 'http://localhost:8000'
+    const items = (data || []).map(m => ({
+      ...m,
+      url: m.url?.replace('http://localhost:8000', pubUrl),
+    }))
+    res.json(items)
   } catch (err: any) { res.status(500).json({ message: err.message }) }
 })
 
