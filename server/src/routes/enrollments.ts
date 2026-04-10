@@ -184,6 +184,13 @@ router.post('/approve', requireAuth, requireRole('admin', 'assistant'), async (r
 
     const now = Date.now()
 
+    // Get admin's actual users.id (req.userId is the auth/clerk_id, not users.id)
+    const { data: adminUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('clerk_id', req.userId)
+      .single()
+
     // Get enrollment details
     const { data: enrollment, error: fetchError } = await supabaseAdmin
       .from('enrollment_requests')
@@ -196,7 +203,11 @@ router.post('/approve', requireAuth, requireRole('admin', 'assistant'), async (r
     // Update enrollment status
     await supabaseAdmin
       .from('enrollment_requests')
-      .update({ status: 'approved', reviewed_by: req.userId, updated_at: now })
+      .update({
+        status: 'approved',
+        reviewed_by: adminUser?.id ?? null,
+        updated_at: now,
+      })
       .eq('id', enrollmentId)
 
     // Create or update user with approved role
@@ -264,6 +275,13 @@ router.post('/reject', requireAuth, requireRole('admin', 'assistant'), async (re
 
     const now = Date.now()
 
+    // Get admin's actual users.id
+    const { data: adminUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('clerk_id', req.userId)
+      .single()
+
     const { data: enrollment, error: fetchError } = await supabaseAdmin
       .from('enrollment_requests')
       .select('*')
@@ -276,7 +294,7 @@ router.post('/reject', requireAuth, requireRole('admin', 'assistant'), async (re
       .from('enrollment_requests')
       .update({
         status: 'rejected',
-        reviewed_by: req.userId,
+        reviewed_by: adminUser?.id ?? null,
         rejection_reason: rejectionReason ?? 'Not specified',
         updated_at: now,
       })

@@ -1,6 +1,6 @@
 // src/pages/dashboard/admin/Users.tsx
 import { useState, useEffect } from 'react'
-import { api, type User } from '../../../lib/api'
+import { api } from '../../../lib/api'
 import { useCurrentUser } from '../../../hooks/useCurrentUser'
 
 export default function Users() {
@@ -10,7 +10,7 @@ export default function Users() {
 
   useEffect(() => {
     if (convexUser?.role === 'admin') {
-      api.users.users.getAll().then(setUsers).catch(console.error)
+      api.users.getAllUsers().then(setUsers).catch(console.error)
     }
   }, [convexUser])
 
@@ -24,7 +24,7 @@ export default function Users() {
   const handleRoleChange = async (userId: string, role: string) => {
     setProcessing(true)
     try {
-      await api.users.users.updateRole(userId, role)
+      await api.users.updateUserRole(userId, role)
       setUsers(prev => (prev ?? []).map(u => u.id === userId ? { ...u, role } : u))
     } catch (err) {
       console.error('Failed to update role:', err)
@@ -37,7 +37,7 @@ export default function Users() {
   const handleToggleActive = async (userId: string) => {
     setProcessing(true)
     try {
-      await api.users.users.toggleActive(userId)
+      await api.users.toggleUserActive(userId)
       setUsers(prev => (prev ?? []).map(u => u.id === userId ? { ...u, is_active: !u.is_active } : u))
     } catch (err) {
       console.error('Failed to toggle user:', err)
@@ -51,7 +51,7 @@ export default function Users() {
     if (!confirm('Delete this user permanently?')) return
     setProcessing(true)
     try {
-      await api.users.users.delete(userId)
+      await api.users.deleteUser(userId)
       setUsers(prev => (prev ?? []).filter(u => u.id !== userId))
     } catch (err) {
       console.error('Failed to delete user:', err)

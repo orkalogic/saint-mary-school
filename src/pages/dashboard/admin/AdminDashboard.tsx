@@ -9,7 +9,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (convexUser?.role === 'admin') {
-      api.users.users.getDashboardStats().then(setStats).catch(console.error)
+      api.users.getDashboardStats().then(setStats).catch(console.error)
     }
   }, [convexUser])
 

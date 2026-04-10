@@ -49,6 +49,9 @@ export const api = {
     toggleUserActive: (userId: string) =>
       request<boolean>('/users/toggle', { method: 'PATCH', body: JSON.stringify({ userId }) }),
     getDashboardStats: () => request<DashboardStats>('/users/stats'),
+    // Backward-compat aliases
+    getAllUsers: () => request<User[]>('/users'),
+    deleteUser: (id: string) => request<boolean>(`/users/${id}`, { method: 'DELETE' }),
   },
 
   // Enrollments
@@ -66,6 +69,22 @@ export const api = {
         body: JSON.stringify({ enrollmentId, role }),
       }),
     reject: (enrollmentId: string, rejectionReason: string) =>
+      request<boolean>('/enrollments/reject', {
+        method: 'POST',
+        body: JSON.stringify({ enrollmentId, rejectionReason }),
+      }),
+    // Backward-compat aliases
+    submitStudentEnrollment: (data: StudentEnrollmentData) =>
+      request<string>('/enrollments/student', { method: 'POST', body: JSON.stringify(data) }),
+    submitTeacherEnrollment: (data: TeacherEnrollmentData) =>
+      request<string>('/enrollments/teacher', { method: 'POST', body: JSON.stringify(data) }),
+    getAllEnrollments: () => request<Enrollment[]>('/enrollments'),
+    approveEnrollment: (enrollmentId: string, role: string) =>
+      request<boolean>('/enrollments/approve', {
+        method: 'POST',
+        body: JSON.stringify({ enrollmentId, role }),
+      }),
+    rejectEnrollment: (enrollmentId: string, rejectionReason: string) =>
       request<boolean>('/enrollments/reject', {
         method: 'POST',
         body: JSON.stringify({ enrollmentId, rejectionReason }),

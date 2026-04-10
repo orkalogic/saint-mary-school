@@ -63,7 +63,7 @@ export default function TeacherEnrollment() {
     if (!session?.user) return
     setSubmitting(true)
     try {
-      await api.enrollments.enrollments.submitTeacher({
+      await api.enrollments.submitTeacherEnrollment({
         clerkId: session.user.id,
         firstName: form.firstName,
         lastName: form.lastName,

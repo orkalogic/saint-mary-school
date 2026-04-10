@@ -57,10 +57,10 @@ export default function TeacherDashboard() {
     setLoading(true)
     try {
       await api.submissions.grade(gradingSubmission.id, {
-        score: parseFloat(gradeScore) as any,
+        score: gradeScore ? Number(gradeScore) : (undefined as any),
         feedback: gradeFeedback,
         status: 'graded',
-      })
+      } as any)
       setGradingSubmission(null)
       setGradeScore('')
       setGradeFeedback('')

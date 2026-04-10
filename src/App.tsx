@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { useCurrentUser } from './hooks/useCurrentUser'
+import NotificationBell from './components/NotificationBell'
+import AIChat from './components/AIChat'
 import HomePage from './pages/HomePage'
 import About from './pages/About'
 import Contact from './pages/Contact'
@@ -48,6 +50,8 @@ export default function App() {
         <Route path="/dashboard/teacher" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
         <Route path="/dashboard/parent" element={<ProtectedRoute><ParentDashboard /></ProtectedRoute>} />
       </Routes>
+      <NotificationBell />
+      <AIChat />
     </>
   )
 }
@@ -162,6 +166,7 @@ function NavBar() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <NotificationBell />
         {isSignedIn ? (
           <button onClick={() => supabase.auth.signOut()} style={signOutBtnStyle}>
             Sign Out
