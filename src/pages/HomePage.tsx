@@ -605,6 +605,51 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ══════════════ PAST EVENTS GALLERY ══════════════ */}
+      <section style={{ padding: "60px 24px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+            <div>
+              <span className="sans section-label">Memories</span>
+              <h2 className="section-title">Past Events</h2>
+            </div>
+            <a href="/events" className="sans" style={{ fontSize: 14, fontWeight: 600, color: C.gold, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
+              View all events
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+            {events.filter(ev => new Date(ev.date) < new Date()).slice(0, 6).map((ev, i) => (
+              <a key={ev.id} href={`/events/${ev.id}`} style={{ textDecoration: "none" }}>
+                <div className="card" style={{ borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
+                  {ev.cover_image ? (
+                    <img src={ev.cover_image} alt={ev.title} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: "100%", aspectRatio: "16/9", background: defaultGradients[i % defaultGradients.length] }} />
+                  )}
+                  <div style={{ padding: "16px 20px" }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 600, color: C.navy, marginBottom: 6, lineHeight: 1.3 }}>{ev.title}</h3>
+                    <div style={{ display: "flex", gap: 12, fontSize: 13, color: C.textMuted }}>
+                      <span>📅 {new Date(ev.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      {ev.location && <span>📍 {ev.location}</span>}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+
+          {events.filter(ev => new Date(ev.date) < new Date()).length === 0 && (
+            <div style={{ textAlign: "center", padding: 60, color: C.textMuted, border: "1px solid #E5E7EB", borderRadius: 12 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📷</div>
+              <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>No past events yet</p>
+              <p style={{ fontSize: 14 }}>Past events with photos will appear here.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ══════════════ COMMUNITY CTA ══════════════ */}
       <section style={{
         padding: "70px 24px", position: "relative", overflow: "hidden",

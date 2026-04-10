@@ -10,6 +10,7 @@ import SignIn from './pages/auth/SignIn'
 import SignUp from './pages/auth/SignUp'
 import Events from './pages/Events'
 import Blog from './pages/Blog'
+import EventDetail from './pages/EventDetail'
 import StudentEnrollment from './pages/enroll/Student'
 import TeacherEnrollment from './pages/enroll/Teacher'
 import ParentRegistration from './pages/enroll/Parent'
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/auth/sign-in" element={<SignIn />} />
         <Route path="/auth/sign-up" element={<SignUp />} />

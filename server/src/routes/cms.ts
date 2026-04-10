@@ -195,4 +195,47 @@ router.delete('/pages/:id', requireAuth, requireRole('admin', 'assistant'), asyn
   } catch (err: any) { res.status(500).json({ message: err.message }) }
 })
 
+// ── Event Media (images/videos per event) ──
+router.get('/event-media/:eventId', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('event_media')
+      .select('*')
+      .eq('event_id', req.params.eventId)
+      .order('display_order', { ascending: true })
+    if (error) throw error
+    res.json(data ?? [])
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
+router.post('/event-media', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('event_media')
+      .insert({ ...req.body, created_at: Date.now() })
+      .select()
+      .single()
+    if (error) throw error
+    res.json(data)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
+router.delete('/event-media/:id', requireAuth, requireRole('admin', 'assistant'), async (req: AuthRequest, res) => {
+  try {
+    const { error } = await supabaseAdmin.from('event_media').delete().eq('id', req.params.id)
+    if (error) throw error
+    res.json(true)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
+// Batch delete (for reordering)
+router.post('/event-media/batch-delete', requireAuth, requireRole('admin', 'assistant'), async (req, res) => {
+  try {
+    const { ids } = req.body
+    const { error } = await supabaseAdmin.from('event_media').delete().in('id', ids)
+    if (error) throw error
+    res.json(true)
+  } catch (err: any) { res.status(500).json({ message: err.message }) }
+})
+
 export default router

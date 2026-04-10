@@ -204,6 +204,12 @@ export const api = {
       update: (id: string, data: any) => request<boolean>(`/cms/pages/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
       delete: (id: string) => request<boolean>(`/cms/pages/${id}`, { method: 'DELETE' }),
     },
+    eventMedia: {
+      getAll: (eventId: string) => request<any[]>(`/cms/event-media/${eventId}`),
+      create: (data: any) => request<any>('/cms/event-media', { method: 'POST', body: JSON.stringify(data) }),
+      delete: (id: string) => request<boolean>(`/cms/event-media/${id}`, { method: 'DELETE' }),
+      batchDelete: (ids: string[]) => request<boolean>('/cms/event-media/batch-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+    },
   },
 
   // Meetings

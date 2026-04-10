@@ -1,6 +1,7 @@
 // src/pages/dashboard/cms/CmsDashboard.tsx
 import { useState, useEffect } from 'react'
 import { api } from '../../../lib/api'
+import { supabase } from '../../../lib/supabase'
 import { useCurrentUser } from '../../../hooks/useCurrentUser'
 import ImageUpload from '../../../components/ImageUpload'
 import MediaLibrary from '../../../components/MediaLibrary'
@@ -33,6 +34,8 @@ export default function CmsDashboard() {
   const [editItem, setEditItem] = useState<any | null>(null)
   const [formData, setFormData] = useState<Record<string, any>>({})
   const [showMediaLib, setShowMediaLib] = useState(false)
+  const [eventMediaMode, setEventMediaMode] = useState<string | null>(null)
+  const [eventMediaItems, setEventMediaItems] = useState<any[]>([])
 
   const isAdmin = convexUser?.role === 'admin' || convexUser?.role === 'assistant'
 
@@ -116,6 +119,30 @@ export default function CmsDashboard() {
     }
   }
 
+  const loadEventMedia = async (eventId: string) => {
+    const items = await api.cms.eventMedia.getAll(eventId).catch(() => [])
+    setEventMediaItems(items || [])
+    setEventMediaMode(eventId)
+  }
+
+  const handleMediaUpload = async (eventId: string, files: FileList) => {
+    for (const file of Array.from(files)) {
+      const isVideo = file.type.startsWith('video')
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `events/${eventId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('cms-media').upload(path, file, { contentType: file.type })
+      if (uploadError) { console.error('Upload failed:', uploadError); continue }
+      const { data: { publicUrl } } = supabase.storage.from('cms-media').getPublicUrl(path).data
+      await api.cms.eventMedia.create({ event_id: eventId, type: isVideo ? 'video' : 'image', url: publicUrl, title: file.name.split('.')[0] }).catch(console.error)
+    }
+    loadEventMedia(eventId)
+  }
+
+  const handleDeleteMedia = async (id: string, eventId: string) => {
+    await api.cms.eventMedia.delete(id).catch(console.error)
+    loadEventMedia(eventId)
+  }
+
   const IS: React.CSSProperties = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 14, marginBottom: 12, boxSizing: 'border-box', outline: 'none' }
   const LS: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }
   const BP: React.CSSProperties = { padding: '10px 24px', borderRadius: 8, background: '#C9A84C', color: '#1E3A5F', fontWeight: 600, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 14 }
@@ -196,6 +223,9 @@ export default function CmsDashboard() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
+                {section === 'events' && (
+                  <button style={{ ...BS, background: '#DBEAFE', color: '#1E40AF' }} onClick={() => loadEventMedia(item.id)}>📸 Media</button>
+                )}
                 <button style={BS} onClick={() => { setEditItem(item); setFormData(item) }}>Edit</button>
                 <button style={BD} onClick={() => handleDelete(section, item.id)}>Delete</button>
               </div>
@@ -238,7 +268,36 @@ export default function CmsDashboard() {
         )
       case 'about': return renderList('about', aboutPages, [{ key: 'section', label: 'Section ID' }, { key: 'title_display', label: 'Display Title' }, { key: 'content', label: 'Content', type: 'textarea' }])
       case 'contact': return renderList('contact', contactPages, [{ key: 'section', label: 'Section ID' }, { key: 'title_display', label: 'Display Title' }, { key: 'content', label: 'Content', type: 'textarea' }])
-      case 'events': return renderList('events', events, [{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'date', label: 'Date', type: 'date' }, { key: 'start_time', label: 'Start Time' }, { key: 'end_time', label: 'End Time' }, { key: 'location', label: 'Location' }, { key: 'category', label: 'Category' }, { key: 'cover_image', label: 'Cover Image' }])
+      case 'events':
+        return (
+          <div>
+            {renderList('events', events, [{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'date', label: 'Date', type: 'date' }, { key: 'start_time', label: 'Start Time' }, { key: 'end_time', label: 'End Time' }, { key: 'location', label: 'Location' }, { key: 'category', label: 'Category' }, { key: 'cover_image', label: 'Cover Image' }])}
+            {eventMediaMode && (
+              <div style={{ marginTop: 24, padding: 24, borderRadius: 12, border: '2px solid #C9A84C', background: '#FFFBEB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1E3A5F', margin: 0 }}>📸 Media for: {events.find(e => e.id === eventMediaMode)?.title}</h3>
+                  <button onClick={() => setEventMediaMode(null)} style={{ padding: '4px 12px', borderRadius: 6, background: '#E5E7EB', border: 'none', cursor: 'pointer', fontSize: 13 }}>Close</button>
+                </div>
+                <input type="file" accept="image/*,video/*" multiple onChange={e => e.target.files && handleMediaUpload(eventMediaMode, e.target.files)} style={{ marginBottom: 16 }} />
+                {eventMediaItems.length === 0 ? (
+                  <p style={{ color: '#6B7280', fontSize: 14 }}>No media yet. Upload images or videos above.</p>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                    {eventMediaItems.map(m => (
+                      <div key={m.id} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden' }}>
+                        {m.type === 'image'
+                          ? <img src={m.url} alt={m.title} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} />
+                          : <video src={m.url} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} />}
+                        <button onClick={() => handleDeleteMedia(m.id, eventMediaMode)} style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%', background: 'rgba(220,38,38,0.9)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                        <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2px 6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.type === 'video' ? '🎬' : '📷'} {m.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )
       case 'blog': return renderList('blog', blogPosts, [{ key: 'title', label: 'Title' }, { key: 'content', label: 'Content', type: 'textarea' }, { key: 'excerpt', label: 'Excerpt', type: 'textarea' }, { key: 'category', label: 'Category' }, { key: 'cover_image', label: 'Cover Image' }])
       case 'news': return renderList('news', newsItems, [{ key: 'title', label: 'Title' }, { key: 'content', label: 'Content', type: 'textarea' }, { key: 'excerpt', label: 'Excerpt' }, { key: 'cover_image', label: 'Cover Image' }])
       case 'fasting': return renderList('fasting', fastingSeasons, [{ key: 'name', label: 'Name' }, { key: 'name_geez', label: 'Ge\'ez Name' }, { key: 'start_date', label: 'Start', type: 'date' }, { key: 'end_date', label: 'End', type: 'date' }, { key: 'total_days', label: 'Days', type: 'number' }, { key: 'year', label: 'Year', type: 'number' }])

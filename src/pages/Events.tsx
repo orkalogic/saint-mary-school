@@ -1,5 +1,6 @@
 // src/pages/Events.tsx
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 
 const C = {
@@ -41,7 +42,7 @@ export default function Events() {
               <div style={{ marginBottom: 48 }}>
                 <h2 style={{ fontSize: 24, fontWeight: 700, color: C.navy, marginBottom: 20, paddingBottom: 8, borderBottom: `2px solid ${C.gold}` }}>Upcoming Events</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                  {upcoming.map((ev: any) => <EventCard key={ev.id} ev={ev} />)}
+                  {upcoming.map((ev: any) => <Link key={ev.id} to={`/events/${ev.id}`} style={{ textDecoration: 'none' }}><EventCard ev={ev} /></Link>)}
                 </div>
               </div>
             )}
@@ -49,7 +50,7 @@ export default function Events() {
               <div>
                 <h2 style={{ fontSize: 24, fontWeight: 700, color: C.textMuted, marginBottom: 20, paddingBottom: 8, borderBottom: '2px solid #D1D5DB' }}>Past Events</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, opacity: 0.6 }}>
-                  {past.map((ev: any) => <EventCard key={ev.id} ev={ev} past />)}
+                  {past.map((ev: any) => <Link key={ev.id} to={`/events/${ev.id}`} style={{ textDecoration: 'none' }}><EventCard ev={ev} past /></Link>)}
                 </div>
               </div>
             )}
